@@ -5,7 +5,19 @@ import time
 
 # 設定要提醒的時間，格式為"小時:分鐘"
 # 用字串儲存，之後會拿來和目前時間比較
-reminder_time = "14:19"
+# 原本是單一提醒時間版本 reminder_time = "14:19"
+
+# 設定一周每天的提醒時間
+# Python中 weekday()的數字代表: 0=星期一、1=星期二、2=星期三、3=星期四、4=星期五、5=星期六、6=星期日
+weekly_schedule ={
+    0: "17:40", # 星期一
+    1: "18:00", # 星期二
+    2: "18:00", # 星期三
+    3: "18:00", # 星期四
+    4: "18:00", # 星期五
+    5: "20:00", # 星期六
+    6: "20:00", # 星期日
+}
 
 # 延後提醒時間，一開始還沒有延後所以設為None
 #若使用者按下延後提醒，變數會改成新的datetime
@@ -87,7 +99,8 @@ def show_reminder():
 # 印出程式啟動提示
 print("程式已啟動")
 # 顯示目前設定的提醒時間
-print("原始提醒時間 =", reminder_time)
+# print("原始提醒時間 =", reminder_time)
+print("每週提醒時間表 =", weekly_schedule)
 
 # 迴圈，讓程式持續運行 (持續檢查時間))
 while True:
@@ -111,8 +124,8 @@ while True:
     print(
         "現在時間 =",
         now.strftime("%H:%M:%S"),
-        "| reminder_time =", 
-        reminder_time, #原始提醒時間
+        # "| reminder_time =", 
+        # reminder_time, #原始提醒時間
         "| delayed_time =",
         delayed_time.strftime("%H:%M:%S") if delayed_time else None, #如果有延後時間就顯示，沒就顯示None
         "| finished =",
@@ -140,19 +153,40 @@ while True:
             show_reminder()
     
     # 沒有延後提醒，才判斷原始提醒
-    else:
+    # else:
     # ===== 改良版：避免錯過提醒 =====
 
     # 將設定時間轉成今天的 datetime
-        reminder_datetime = datetime.combine(
-        now.date(),
-        datetime.strptime(reminder_time, "%H:%M").time()
-    )
+    # reminder_datetime = datetime.combine(
+    #    now.date(),
+    #    datetime.strptime(reminder_time, "%H:%M").time())
 
     # 判斷是否要觸發原始提醒（或補發）
-    if not original_reminder_shown_today and now >= reminder_datetime:
-        print(">>> 原始提醒時間（或補發）到了，準備提醒")
-        original_reminder_shown_today = True
-        show_reminder()
+    #if not original_reminder_shown_today and now >= reminder_datetime:
+    #    print(">>> 原始提醒時間（或補發）到了，準備提醒")
+    #    original_reminder_shown_today = True
+    #    show_reminder()
+    
+    # ===== 每週不同提醒時間版本 =====
+    else:
+
+        # 取得今天是星期幾
+        # weekday() 回傳 0~6，0代表星期一，6代表星期日
+        weekday = now.weekday()
+
+        # 根據今天星期幾，從 weekly_schedule 取得今天的提醒時間
+        reminder_time = weekly_schedule[weekday]
+
+        # 將今天的提醒時間轉換成 datetime 物件
+        reminder_datetime = datetime.combine(
+            now.date(),
+            datetime.strptime(reminder_time, "%H:%M").time()
+        )
+
+        # 判斷是否要觸發原始提醒或補發提醒
+        if not original_reminder_shown_today and now >= reminder_datetime:
+            print(">>> 今天的提醒時間到了，準備提醒")
+            original_reminder_shown_today = True
+            show_reminder()
 
     time.sleep(5)
