@@ -1,3 +1,4 @@
+import json
 import tkinter as tk #匯入tkinter，用來建立提醒視窗與按鈕
 from tkinter import messagebox #匯入messagebox，用來跳出提示訊息框
 from datetime import datetime, timedelta #datetime取得現在時間，timedelta用來計算延後時間
@@ -9,15 +10,126 @@ import time
 
 # 設定一周每天的提醒時間
 # Python中 weekday()的數字代表: 0=星期一、1=星期二、2=星期三、3=星期四、4=星期五、5=星期六、6=星期日
-weekly_schedule ={
-    0: "17:40", # 星期一
-    1: "18:00", # 星期二
-    2: "18:00", # 星期三
-    3: "18:00", # 星期四
-    4: "18:00", # 星期五
-    5: "20:00", # 星期六
-    6: "20:00", # 星期日
-}
+# =====原本固定的weekly_schedule版本=====
+# weekly_schedule ={
+   # 0: "17:40",
+   # 1: "18:00",
+   # 2: "18:00",
+   # 3: "18:00",
+   # 4: "18:00",
+   # 5: "20:00",
+   # 6: "20:00",
+# }
+
+# =====讓使用者輸入一周每天的提醒時間，且用JSON處存版本=====
+
+# 設定json檔案名稱
+schedule_file = "weekly_schedule.json"
+
+# 用GUI視窗繞使用者輸入一周提醒時間
+def create_schedule_with_gui():
+    weekly_schedule = {}
+
+    weekdays = {
+        0: "星期一",
+        1: "星期二",
+        2: "星期三",
+        3: "星期四",
+        4: "星期五",
+        5: "星期六",
+        6: "星期日"
+    }
+
+    setting_window = tk.Tk()
+    setting_window.title("設定每週提醒時間")
+    setting_window.geometry("350x350")
+
+    entries = {}
+
+    title_label = tk.Label(setting_window, text="請設定每天的提醒時間", font=("Arial", 14))
+    title_label.pack(pady=10)
+
+    for day_number, day_name in weekdays.items():
+        row = tk.Frame(setting_window)
+        row.pack(pady=3)
+
+        label = tk.Label(row, text=day_name, width=8)
+        label.pack(side="left")
+
+        entry = tk.Entry(row, width=10)
+        entry.insert(0, "18:00")
+        entry.pack(side="left")
+
+        entries[day_number] = entry
+
+    def save_schedule():
+        for day_number, entry in entries.items():
+            weekly_schedule[day_number] = entry.get()
+
+        with open(schedule_file, "w", encoding="utf-8") as file:
+            json.dump(
+                weekly_schedule,
+                file,
+                ensure_ascii=False,
+                indent=4
+            )
+
+        messagebox.showinfo("完成", "每週提醒時間已儲存！")
+        setting_window.destroy()
+
+    save_button = tk.Button(setting_window, text="儲存設定", command=save_schedule)
+    save_button.pack(pady=15)
+
+    setting_window.mainloop()
+
+    return weekly_schedule
+
+try:
+    # 嘗試從檔案讀取每週提醒時間
+    with open(schedule_file, "r", encoding="utf-8") as file:
+        # 將JSON內容轉成Python dict 
+        weekly_schedule = json.load(file)
+        # JSON 的 key 會變成字串，所以轉回 int
+        weekly_schedule = {
+            int(key): value
+            for key, value in weekly_schedule.items()
+        }
+    print("已成功讀取 weekly_schedule.json")
+
+#如果檔案不存在
+except FileNotFoundError:
+    print("找不到設定檔，開始建立新的 weekly_schedule")
+    weekly_schedule = create_schedule_with_gui()
+
+    # #建立空字典，用來儲存每周提醒時間
+    # weekly_schedule = {}
+    # #建立星期對照表
+    # weekdays = {
+    # 0: "星期一",
+    # 1: "星期二",
+    # 2: "星期三",
+    # 3: "星期四",
+    # 4: "星期五",
+    # 5: "星期六",
+    # 6: "星期日"
+    # }
+    # #讓使用者輸入每天的提醒時間
+    # for day_number, day_name in weekdays.items():
+    #     # input() 讓使用者輸入時間
+    #     user_time = input(f"請輸入{day_name}的提醒時間，例如 18:00：")
+    #     # 將輸入結果存進weekly_schedule字典
+    #     weekly_schedule[day_number] = user_time
+    
+    # # 將設定儲存到JSON檔案
+    # with open(schedule_file, "w", encoding="utf-8") as file:
+    #     json.dump(
+    #         weekly_schedule, 
+    #         file,
+    #         ensure_ascii=False, #確保中文能正常儲存
+    #         indent=4 #讓JSON檔案有縮排，方便閱讀
+    #     )
+
+
 
 # 延後提醒時間，一開始還沒有延後所以設為None
 #若使用者按下延後提醒，變數會改成新的datetime
@@ -31,9 +143,14 @@ reminder_finished_today = False
 # 用來避免同一分鐘內重複跳出提醒視窗
 original_reminder_shown_today = False
 
+# 紀錄今天是否已經印出提醒時間
+schedule_printed_today = False
+
 # 記錄程式啟動的日期
 # 之後可以用來判斷是否已經換到新的一天
 today_date = datetime.now().date()
+
+
 
 # 定義:當使用者按下「已處理」按鈕的時候執行
 def mark_done(window):
@@ -49,7 +166,7 @@ def mark_done(window):
     window.destroy()
 
 # 當使用者按下「延後一小時」按鈕時執行
-def delay_one_minute(window):
+def delay_one_hour(window):
     # 使用global， 表示要修改外部的delayed_time變數
     global delayed_time
     # 取得目前的時間 (datetime 物件)
@@ -64,6 +181,18 @@ def delay_one_minute(window):
     messagebox.showinfo("延後", f"提醒已延後到 {delayed_time.strftime('%H:%M:%S')}")
     # 關閉提醒視窗
     window.destroy()
+
+# 重新開啟 weekly_schedule 設定視窗
+def change_schedule(window):
+
+    # 關閉目前提醒視窗
+    window.destroy()
+
+    # 開啟設定視窗
+    create_schedule_with_gui()
+
+    # 提示使用者
+    messagebox.showinfo("完成", "新的提醒時間已更新！")
 
 # 顯示提醒視窗
 def show_reminder():
@@ -89,9 +218,18 @@ def show_reminder():
     done_button.pack(pady=5)
 
     # 建立延後一小時的按鈕
-    delay_button = tk.Button(window, text="延後一小時", command=lambda: delay_one_minute(window)) # 呼叫延後函式
+    delay_button = tk.Button(window, text="延後一小時", command=lambda: delay_one_hour(window)) # 呼叫延後函式
     # 將按鈕放到視窗上
     delay_button.pack(pady=5)
+    # 建立修改設定按鈕
+    change_button = tk.Button(
+        window,
+        text="修改提醒時間",
+        command=lambda: change_schedule(window)
+    )
+
+    #將按鈕放到視窗上
+    change_button.pack(pady=5)
 
     # 將視窗持續運作 (等待使用者操作)
     window.mainloop()
@@ -118,6 +256,7 @@ while True:
         # 重設「是否顯示過提醒」狀態
         original_reminder_shown_today = False
         # 印出提示訊息
+        schedule_printed_today = False
         print("已換天，狀態重置")
 
     # 每5秒印一次現在狀態
@@ -176,7 +315,14 @@ while True:
 
         # 根據今天星期幾，從 weekly_schedule 取得今天的提醒時間
         reminder_time = weekly_schedule[weekday]
+        
+        # print("今天的提醒時間 =", reminder_time)
 
+        #只在今天第一次讀取提醒時間時印出
+        if not schedule_printed_today:
+            print("今天的提醒時間 =", reminder_time)
+            schedule_printed_today = True
+        
         # 將今天的提醒時間轉換成 datetime 物件
         reminder_datetime = datetime.combine(
             now.date(),
