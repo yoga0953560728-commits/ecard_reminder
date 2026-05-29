@@ -3,6 +3,39 @@ import tkinter as tk #匯入tkinter，用來建立提醒視窗與按鈕
 from tkinter import messagebox #匯入messagebox，用來跳出提示訊息框
 from datetime import datetime, timedelta #datetime取得現在時間，timedelta用來計算延後時間
 import time 
+import smtplib
+from email.mime.text import MIMEText
+from email.header import Header
+
+
+def send_email_notification():
+    sender_email = email_config["sender_email"]
+    receiver_email = email_config["sender_email"]  # 寄給自己
+    app_password = email_config["app_password"]
+    # 以下不變...
+    # --- 設定區 ---
+    smtp_server = "smtp.gmail.com"
+    smtp_port = 587
+    #sender_email = "你的Gmail@gmail.com"
+    #receiver_email = "接收通知的Email@gmail.com" # 可以跟寄件者相同
+    #app_password = "你的16位應用程式密碼" 
+    # -------------
+
+    msg = MIMEText("提醒：時間到了，記得處理電卡！\n換卡連結：https://dormtopup.prince.com.tw/User/D01", "plain", "utf-8")
+    msg["Subject"] = Header("【電卡提醒】該換電卡囉！", "utf-8")
+    msg["From"] = sender_email
+    msg["To"] = receiver_email
+
+    try:
+        # 建立與 SMTP 伺服器的連線
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()  # 啟動加密傳輸
+        server.login(sender_email, app_password)
+        server.sendmail(sender_email, receiver_email, msg.as_string())
+        server.quit()
+        print(">>> Gmail 通知已成功發送")
+    except Exception as e:
+        print(f">>> 郵件發送失敗: {e}")
 
 # 設定要提醒的時間，格式為"小時:分鐘"
 # 用字串儲存，之後會拿來和目前時間比較
@@ -40,9 +73,14 @@ def create_schedule_with_gui():
         6: "星期日"
     }
 
+    
     setting_window = tk.Tk()
+    setting_window.lift()
+    setting_window.focus_force()
+    setting_window.attributes('-topmost', True)  # 確保視窗在最上面
     setting_window.title("設定每週提醒時間")
     setting_window.geometry("350x350")
+    
 
     entries = {}
 
@@ -80,6 +118,7 @@ def create_schedule_with_gui():
     save_button = tk.Button(setting_window, text="儲存設定", command=save_schedule)
     save_button.pack(pady=15)
 
+    
     setting_window.mainloop()
 
     return weekly_schedule
@@ -129,6 +168,57 @@ except FileNotFoundError:
     #         indent=4 #讓JSON檔案有縮排，方便閱讀
     #     )
 
+#建立email通知
+email_config_file = "email_config.json"
+
+def create_email_config_with_gui():
+    config = {}
+
+    config_window = tk.Tk()
+    config_window.title("設定 Gmail 收信帳號")
+    config_window.geometry("400x250")
+    config_window.lift()
+    config_window.focus_force()
+    config_window.attributes('-topmost', True)
+
+    tk.Label(config_window, text="請設定收信用的 Gmail 帳號", font=("Arial", 13)).pack(pady=10)
+
+    # Gmail 帳號
+    row1 = tk.Frame(config_window)
+    row1.pack(pady=5)
+    tk.Label(row1, text="Gmail 帳號", width=12).pack(side="left")
+    email_entry = tk.Entry(row1, width=28)
+    email_entry.pack(side="left")
+
+    # 應用程式密碼
+    row2 = tk.Frame(config_window)
+    row2.pack(pady=5)
+    tk.Label(row2, text="你的16位Google\n應用程式密碼", width=12).pack(side="left")
+    password_entry = tk.Entry(row2, width=28, show="*")  # show="*" 讓密碼顯示成星號
+    password_entry.pack(side="left")
+
+    def save_config():
+        config["sender_email"] = email_entry.get()
+        config["app_password"] = password_entry.get()
+
+        with open(email_config_file, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=4)
+
+        messagebox.showinfo("完成", "Gmail 設定已儲存！")
+        config_window.destroy()
+
+    tk.Button(config_window, text="儲存設定", command=save_config).pack(pady=15)
+    config_window.mainloop()
+
+    return config
+
+try:
+    with open(email_config_file, "r", encoding="utf-8") as f:
+        email_config = json.load(f)
+    print("已成功讀取 email_config.json")
+except FileNotFoundError:
+    print("找不到 Gmail 設定，開始建立新的設定")
+    email_config = create_email_config_with_gui()
 
 
 # 延後提醒時間，一開始還沒有延後所以設為None
@@ -183,27 +273,49 @@ def delay_one_hour(window):
     window.destroy()
 
 # 重新開啟 weekly_schedule 設定視窗
+# 因為原先設定完如果還是超過並不會再次跳出提醒視窗
 def change_schedule(window):
+    global weekly_schedule, original_reminder_shown_today, schedule_printed_today
 
-    # 關閉目前提醒視窗
     window.destroy()
 
+    # 取得新的時間設定，並更新記憶體裡的 weekly_schedule
+    new_schedule = create_schedule_with_gui()
+    if new_schedule:
+        weekly_schedule = new_schedule
+
+    # 重設提醒狀態，讓新時間可以重新觸發
+    original_reminder_shown_today = False
+    schedule_printed_today = False
+
+    messagebox.showinfo("完成", "新的提醒時間已更新！")
+#def change_schedule(window):
+
+    # 關閉目前提醒視窗
+    #window.destroy()
+
     # 開啟設定視窗
-    create_schedule_with_gui()
+    #create_schedule_with_gui()
 
     # 提示使用者
-    messagebox.showinfo("完成", "新的提醒時間已更新！")
+    #messagebox.showinfo("完成", "新的提醒時間已更新！")
 
 # 顯示提醒視窗
 def show_reminder():
     # 印出訊息，確認程式有進入這個函式
-    print(">>> 已進入 show_reminder()，準備跳出視窗")
+    print(">>> 已進入 show_reminder()，準備跳出視窗並發送郵件")
+    
+    # 這裡加入發送郵件的功能
+    send_email_notification()
     # 建立一個新的視窗
     window = tk.Tk()
     # 設定視窗的標題
     window.title("電卡提醒")
     # 設定視窗的大小
     window.geometry("300x180")
+    window.lift()
+    window.focus_force()
+    window.attributes('-topmost', True)  # 確保視窗在最上面
     
     # 建立文字標籤(顯示提醒的內容)
     label = tk.Label(window, text="記得處理電卡！", font=("Arial", 14))
@@ -233,6 +345,9 @@ def show_reminder():
 
     # 將視窗持續運作 (等待使用者操作)
     window.mainloop()
+
+
+
 
 # 印出程式啟動提示
 print("程式已啟動")
