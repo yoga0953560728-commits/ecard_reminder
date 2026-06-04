@@ -1,3 +1,4 @@
+import threading
 import json
 import tkinter as tk #匯入tkinter，用來建立提醒視窗與按鈕
 from tkinter import messagebox #匯入messagebox，用來跳出提示訊息框
@@ -102,7 +103,18 @@ def create_schedule_with_gui():
 
     def save_schedule():
         for day_number, entry in entries.items():
-            weekly_schedule[day_number] = entry.get()
+            user_time = entry.get()
+
+            try:
+                datetime.strptime(user_time, "%H:%M")
+            except ValueError:
+                messagebox.showerror(
+                    "格式錯誤",
+                    f"{weekdays[day_number]} 的時間格式錯誤！\n請輸入例如 18:00"
+                )
+                return
+
+            weekly_schedule[day_number] = user_time
 
         with open(schedule_file, "w", encoding="utf-8") as file:
             json.dump(
@@ -289,6 +301,47 @@ def change_schedule(window):
     schedule_printed_today = False
 
     messagebox.showinfo("完成", "新的提醒時間已更新！")
+
+# 建立控制面板視窗
+# 使用者可隨時修改提醒時間，不需手動修改 JSON 檔案
+def open_control_panel():
+    panel = tk.Tk()
+    panel.title("電卡提醒系統")
+    panel.geometry("300x180")
+
+    title_label = tk.Label(panel, text="電卡提醒系統", font=("Arial", 14))
+    title_label.pack(pady=10)
+
+    today_weekday = datetime.now().weekday()
+    today_time = weekly_schedule[today_weekday]
+
+    time_label = tk.Label(panel, text=f"今天提醒時間：{today_time}", font=("Arial", 12))
+    time_label.pack(pady=10)
+
+    #當使用者按下「修改提醒時間」時執行
+    def edit_time():
+        global weekly_schedule, original_reminder_shown_today, schedule_printed_today
+        # 開啟設定時間的視窗讓使用者重新設定時間
+        new_schedule = create_schedule_with_gui()
+
+        if new_schedule:
+            weekly_schedule = new_schedule #將新的時間表更新到程式記憶體
+            original_reminder_shown_today = False  #重新設置提醒狀態、避免今天已經顯示過提醒而無法套用新時間
+            schedule_printed_today = False #系統重新顯示新的提醒時間
+
+            today_weekday = datetime.now().weekday()
+            # 更新控制面板上提醒時間的文字
+            time_label.config(text=f"今天提醒時間：{weekly_schedule[today_weekday]}")
+            #通知使用者新的提醒時間已生效
+            messagebox.showinfo("完成", "提醒時間已更新，程式會立刻使用新時間！")
+
+    edit_button = tk.Button(panel, text="修改提醒時間", command=edit_time)
+    edit_button.pack(pady=5)
+
+    close_button = tk.Button(panel, text="關閉面板", command=panel.destroy)
+    close_button.pack(pady=5)
+
+    panel.mainloop()
 #def change_schedule(window):
 
     # 關閉目前提醒視窗
@@ -346,8 +399,12 @@ def show_reminder():
     # 將視窗持續運作 (等待使用者操作)
     window.mainloop()
 
-
-
+# 建立獨立執行緒執行控制面板
+# 避免 panel.mainloop() 阻塞下面的提醒程式
+threading.Thread(
+    target=open_control_panel,
+    daemon=True
+).start()
 
 # 印出程式啟動提示
 print("程式已啟動")
