@@ -125,8 +125,10 @@ def create_schedule_with_gui():
                 indent=4
             )
 
-        messagebox.showinfo("完成", "每週提醒時間已儲存！")
+
         setting_window.destroy()
+        messagebox.showinfo("完成", "每週提醒時間已儲存！")
+        
 
     save_button = tk.Button(setting_window, text="儲存設定", command=save_schedule)
     save_button.pack(pady=15)
@@ -217,8 +219,9 @@ def create_email_config_with_gui():
         with open(email_config_file, "w", encoding="utf-8") as f:
             json.dump(config, f, ensure_ascii=False, indent=4)
 
-        messagebox.showinfo("完成", "Gmail 設定已儲存！")
         config_window.destroy()
+        messagebox.showinfo("完成", "Gmail 設定已儲存！")
+
 
     tk.Button(config_window, text="儲存設定", command=save_config).pack(pady=15)
     # config_window.mainloop()
@@ -253,6 +256,7 @@ schedule_printed_today = False
 # 記錄程式啟動的日期
 # 之後可以用來判斷是否已經換到新的一天
 today_date = datetime.now().date()
+time_label = None
 
 
 
@@ -271,25 +275,23 @@ def mark_done(window):
 
 # 當使用者按下「延後一小時」按鈕時執行
 def delay_one_hour(window):
-    # 使用global， 表示要修改外部的delayed_time變數
     global delayed_time
-    # 取得目前的時間 (datetime 物件)
     now = datetime.now()
     
-    # 設定新的提醒時間 = 現在時間 + 1小時
-    # timedelta 用來作時間加法
     delayed_time = now + timedelta(hours=1)
-    # 在終端機印出新的延後時間 
     print("你按了：延後一小時，新時間 =", delayed_time.strftime("%H:%M:%S"))
-    # 跳出提醒視窗，顯示延後之後的提醒時間
     messagebox.showinfo("延後", f"提醒已延後到 {delayed_time.strftime('%H:%M:%S')}")
-    # 關閉提醒視窗
+
+    # 更新控制面板上的時間顯示
+    if time_label is not None:
+        time_label.config(text=f"今天提醒時間：{delayed_time.strftime('%H:%M')}（延後）")
+
     window.destroy()
 
 # 重新開啟 weekly_schedule 設定視窗
 # 因為原先設定完如果還是超過並不會再次跳出提醒視窗
 def change_schedule(window):
-    global weekly_schedule, original_reminder_shown_today, schedule_printed_today
+    global weekly_schedule, original_reminder_shown_today, schedule_printed_today, reminder_finished_today, delayed_time
 
     window.destroy()
 
@@ -301,6 +303,13 @@ def change_schedule(window):
     # 重設提醒狀態，讓新時間可以重新觸發
     original_reminder_shown_today = False
     schedule_printed_today = False
+    reminder_finished_today = False
+    delayed_time = None
+
+    # 更新控制面板上的時間顯示
+    if time_label is not None:
+        today_weekday = datetime.now().weekday()
+        time_label.config(text=f"今天提醒時間：{weekly_schedule[today_weekday]}")
 
     messagebox.showinfo("完成", "新的提醒時間已更新！")
 
@@ -308,6 +317,7 @@ def change_schedule(window):
 # 使用者可隨時修改提醒時間，不需手動修改 JSON 檔案
 def open_control_panel():
     panel = tk.Toplevel(root)
+    global time_label
     panel.title("電卡提醒系統")
     panel.geometry("300x180")
 
@@ -322,14 +332,15 @@ def open_control_panel():
 
     #當使用者按下「修改提醒時間」時執行
     def edit_time():
-        global weekly_schedule, original_reminder_shown_today, schedule_printed_today
-        # 開啟設定時間的視窗讓使用者重新設定時間
+        global weekly_schedule, original_reminder_shown_today, schedule_printed_today, reminder_finished_today, delayed_time
         new_schedule = create_schedule_with_gui()
 
         if new_schedule:
             weekly_schedule = new_schedule #將新的時間表更新到程式記憶體
             original_reminder_shown_today = False  #重新設置提醒狀態、避免今天已經顯示過提醒而無法套用新時間
             schedule_printed_today = False #系統重新顯示新的提醒時間
+            reminder_finished_today = False
+            delayed_time = None
 
             today_weekday = datetime.now().weekday()
             # 更新控制面板上提醒時間的文字
