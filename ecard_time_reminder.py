@@ -1,5 +1,6 @@
 import threading
 import json
+import os 
 import tkinter as tk #匯入tkinter，用來建立提醒視窗與按鈕
 from tkinter import messagebox #匯入messagebox，用來跳出提示訊息框
 from datetime import datetime, timedelta #datetime取得現在時間，timedelta用來計算延後時間
@@ -10,7 +11,10 @@ from email.header import Header
 root = tk.Tk()
 root.withdraw()
 
-#建立說明
+# 建立第一次啟動紀錄
+first_run_file = "first_run.json"
+
+# 建立說明
 def show_intro():
     intro = tk.Toplevel(root)
     intro.title("歡迎使用電卡提醒系統")
@@ -36,8 +40,13 @@ def show_intro():
 
     root.wait_window(intro)
 
-#開啟啟用說明
-show_intro() 
+# 第一次開啟顯示說明介面
+if not os.path.exists(first_run_file):
+    show_intro()
+    with open(first_run_file, "w") as f:
+        json.dump({"first_run": False}, f)
+
+
 
 def send_email_notification():
     sender_email = email_config.get("sender_email", "")
@@ -364,7 +373,7 @@ def open_control_panel():
     panel = tk.Toplevel(root)
     global time_label
     panel.title("電卡提醒系統")
-    panel.geometry("300x180")
+    panel.geometry("300x220")
 
     title_label = tk.Label(panel, text="電卡提醒系統", font=("Arial", 14))
     title_label.pack(pady=10)
@@ -395,6 +404,16 @@ def open_control_panel():
 
     edit_button = tk.Button(panel, text="修改提醒時間", command=edit_time)
     edit_button.pack(pady=5)
+
+    # 當使用者按下修改Gmail設定運行
+    def edit_gmail():
+        global email_config
+        new_config = create_email_config_with_gui()
+        if new_config:
+            email_config = new_config
+
+    gmail_button = tk.Button(panel, text="修改 Gmail 設定", command=edit_gmail)
+    gmail_button.pack(pady=5)
 
     close_button = tk.Button(panel, text="關閉面板", command=panel.destroy)
     close_button.pack(pady=5)
