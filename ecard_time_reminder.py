@@ -7,7 +7,8 @@ import time
 import smtplib
 from email.mime.text import MIMEText
 from email.header import Header
-
+root = tk.Tk()
+root.withdraw()
 
 def send_email_notification():
     sender_email = email_config["sender_email"]
@@ -75,7 +76,7 @@ def create_schedule_with_gui():
     }
 
     
-    setting_window = tk.Tk()
+    setting_window = tk.Toplevel(root)
     setting_window.lift()
     setting_window.focus_force()
     setting_window.attributes('-topmost', True)  # 確保視窗在最上面
@@ -130,8 +131,8 @@ def create_schedule_with_gui():
     save_button = tk.Button(setting_window, text="儲存設定", command=save_schedule)
     save_button.pack(pady=15)
 
-    
-    setting_window.mainloop()
+    #setting_window.mainloop()
+    root.wait_window(setting_window)
 
     return weekly_schedule
 
@@ -186,7 +187,7 @@ email_config_file = "email_config.json"
 def create_email_config_with_gui():
     config = {}
 
-    config_window = tk.Tk()
+    config_window = tk.Toplevel(root)
     config_window.title("設定 Gmail 收信帳號")
     config_window.geometry("400x250")
     config_window.lift()
@@ -220,7 +221,8 @@ def create_email_config_with_gui():
         config_window.destroy()
 
     tk.Button(config_window, text="儲存設定", command=save_config).pack(pady=15)
-    config_window.mainloop()
+    # config_window.mainloop()
+    root.wait_window(config_window)
 
     return config
 
@@ -305,7 +307,7 @@ def change_schedule(window):
 # 建立控制面板視窗
 # 使用者可隨時修改提醒時間，不需手動修改 JSON 檔案
 def open_control_panel():
-    panel = tk.Tk()
+    panel = tk.Toplevel(root)
     panel.title("電卡提醒系統")
     panel.geometry("300x180")
 
@@ -341,7 +343,7 @@ def open_control_panel():
     close_button = tk.Button(panel, text="關閉面板", command=panel.destroy)
     close_button.pack(pady=5)
 
-    panel.mainloop()
+    #panel.mainloop()
 #def change_schedule(window):
 
     # 關閉目前提醒視窗
@@ -361,7 +363,7 @@ def show_reminder():
     # 這裡加入發送郵件的功能
     send_email_notification()
     # 建立一個新的視窗
-    window = tk.Tk()
+    window = tk.Toplevel(root)
     # 設定視窗的標題
     window.title("電卡提醒")
     # 設定視窗的大小
@@ -397,114 +399,172 @@ def show_reminder():
     change_button.pack(pady=5)
 
     # 將視窗持續運作 (等待使用者操作)
-    window.mainloop()
+    #window.mainloop()
 
 # 建立獨立執行緒執行控制面板
-# 避免 panel.mainloop() 阻塞下面的提醒程式
-threading.Thread(
-    target=open_control_panel,
-    daemon=True
-).start()
+# threading.Thread(
+#     target=open_control_panel,
+#     daemon=True
+# ).start()
 
-# 印出程式啟動提示
-print("程式已啟動")
-# 顯示目前設定的提醒時間
-# print("原始提醒時間 =", reminder_time)
-print("每週提醒時間表 =", weekly_schedule)
+# # 印出程式啟動提示
+# print("程式已啟動")
+# # 顯示目前設定的提醒時間
+# # print("原始提醒時間 =", reminder_time)
+# print("每週提醒時間表 =", weekly_schedule)
 
-# 迴圈，讓程式持續運行 (持續檢查時間))
-while True:
-    # 取得現在的時間
-    now = datetime.now()
+# # 迴圈，讓程式持續運行 (持續檢查時間))
+# while True:
+#     # 取得現在的時間
+#     now = datetime.now()
 
-    # 換天重置 如果現在日期不適之前紀錄的日期(已換天)
-    if now.date() != today_date:
-        # 更新今天日期
-        today_date = now.date()
-        # 清除延後提醒時間
-        delayed_time = None
-        # 重設「是否完成」狀態
-        reminder_finished_today = False
-        # 重設「是否顯示過提醒」狀態
-        original_reminder_shown_today = False
-        # 印出提示訊息
-        schedule_printed_today = False
-        print("已換天，狀態重置")
+#     # 換天重置 如果現在日期不適之前紀錄的日期(已換天)
+#     if now.date() != today_date:
+#         # 更新今天日期
+#         today_date = now.date()
+#         # 清除延後提醒時間
+#         delayed_time = None
+#         # 重設「是否完成」狀態
+#         reminder_finished_today = False
+#         # 重設「是否顯示過提醒」狀態
+#         original_reminder_shown_today = False
+#         # 印出提示訊息
+#         schedule_printed_today = False
+#         print("已換天，狀態重置")
 
-    # 每5秒印一次現在狀態
-    print(
-        "現在時間 =",
-        now.strftime("%H:%M:%S"),
-        # "| reminder_time =", 
-        # reminder_time, #原始提醒時間
-        "| delayed_time =",
-        delayed_time.strftime("%H:%M:%S") if delayed_time else None, #如果有延後時間就顯示，沒就顯示None
-        "| finished =",
-        reminder_finished_today, #是否已完成
-        "| shown_today =",
-        original_reminder_shown_today #是否已顯示提醒
-    )
+#     # 每5秒印一次現在狀態
+#     print(
+#         "現在時間 =",
+#         now.strftime("%H:%M:%S"),
+#         # "| reminder_time =", 
+#         # reminder_time, #原始提醒時間
+#         "| delayed_time =",
+#         delayed_time.strftime("%H:%M:%S") if delayed_time else None, #如果有延後時間就顯示，沒就顯示None
+#         "| finished =",
+#         reminder_finished_today, #是否已完成
+#         "| shown_today =",
+#         original_reminder_shown_today #是否已顯示提醒
+#     )
 
-    # 如果今天已完成，就不再提醒
-    if reminder_finished_today:
-        time.sleep(5)
-        #跳過以下程式，直接回到while開頭重新檢查
-        continue
+#     # 如果今天已完成，就不再提醒
+#     if reminder_finished_today:
+#         time.sleep(5)
+#         #跳過以下程式，直接回到while開頭重新檢查
+#         continue
 
-    # current_time = now.strftime("%H:%M") 
+#     # current_time = now.strftime("%H:%M") 
 
-    # 優先判斷延後提醒
-    if delayed_time is not None:
-        #如果現在時間已超過或等於延後時間
-        if now >= delayed_time:
-            print(">>> 延後時間到了，準備提醒")
-            # 清除延後時間
+#     # 優先判斷延後提醒
+#     if delayed_time is not None:
+#         #如果現在時間已超過或等於延後時間
+#         if now >= delayed_time:
+#             print(">>> 延後時間到了，準備提醒")
+#             # 清除延後時間
+#             delayed_time = None
+#             #呼叫提醒視窗
+#             show_reminder()
+    
+#     # 沒有延後提醒，才判斷原始提醒
+#     # else:
+#     # ===== 改良版：避免錯過提醒 =====
+
+#     # 將設定時間轉成今天的 datetime
+#     # reminder_datetime = datetime.combine(
+#     #    now.date(),
+#     #    datetime.strptime(reminder_time, "%H:%M").time())
+
+#     # 判斷是否要觸發原始提醒（或補發）
+#     #if not original_reminder_shown_today and now >= reminder_datetime:
+#     #    print(">>> 原始提醒時間（或補發）到了，準備提醒")
+#     #    original_reminder_shown_today = True
+#     #    show_reminder()
+    
+#     # ===== 每週不同提醒時間版本 =====
+#     else:
+
+#         # 取得今天是星期幾
+#         # weekday() 回傳 0~6，0代表星期一，6代表星期日
+#         weekday = now.weekday()
+
+#         # 根據今天星期幾，從 weekly_schedule 取得今天的提醒時間
+#         reminder_time = weekly_schedule[weekday]
+        
+#         # print("今天的提醒時間 =", reminder_time)
+
+#         #只在今天第一次讀取提醒時間時印出
+#         if not schedule_printed_today:
+#             print("今天的提醒時間 =", reminder_time)
+#             schedule_printed_today = True
+        
+#         # 將今天的提醒時間轉換成 datetime 物件
+#         reminder_datetime = datetime.combine(
+#             now.date(),
+#             datetime.strptime(reminder_time, "%H:%M").time()
+#         )
+
+#         # 判斷是否要觸發原始提醒或補發提醒
+#         if not original_reminder_shown_today and now >= reminder_datetime:
+#             print(">>> 今天的提醒時間到了，準備提醒")
+#             original_reminder_shown_today = True
+#             show_reminder()
+
+#     time.sleep(5)
+
+def timer_loop():
+    global delayed_time, reminder_finished_today, original_reminder_shown_today
+    global schedule_printed_today, today_date
+
+    while True:
+        now = datetime.now()
+
+        if now.date() != today_date:
+            today_date = now.date()
             delayed_time = None
-            #呼叫提醒視窗
-            show_reminder()
-    
-    # 沒有延後提醒，才判斷原始提醒
-    # else:
-    # ===== 改良版：避免錯過提醒 =====
+            reminder_finished_today = False
+            original_reminder_shown_today = False
+            schedule_printed_today = False
+            print("已換天，狀態重置")
 
-    # 將設定時間轉成今天的 datetime
-    # reminder_datetime = datetime.combine(
-    #    now.date(),
-    #    datetime.strptime(reminder_time, "%H:%M").time())
-
-    # 判斷是否要觸發原始提醒（或補發）
-    #if not original_reminder_shown_today and now >= reminder_datetime:
-    #    print(">>> 原始提醒時間（或補發）到了，準備提醒")
-    #    original_reminder_shown_today = True
-    #    show_reminder()
-    
-    # ===== 每週不同提醒時間版本 =====
-    else:
-
-        # 取得今天是星期幾
-        # weekday() 回傳 0~6，0代表星期一，6代表星期日
-        weekday = now.weekday()
-
-        # 根據今天星期幾，從 weekly_schedule 取得今天的提醒時間
-        reminder_time = weekly_schedule[weekday]
-        
-        # print("今天的提醒時間 =", reminder_time)
-
-        #只在今天第一次讀取提醒時間時印出
-        if not schedule_printed_today:
-            print("今天的提醒時間 =", reminder_time)
-            schedule_printed_today = True
-        
-        # 將今天的提醒時間轉換成 datetime 物件
-        reminder_datetime = datetime.combine(
-            now.date(),
-            datetime.strptime(reminder_time, "%H:%M").time()
+        print(
+            "現在時間 =", now.strftime("%H:%M:%S"),
+            "| delayed_time =", delayed_time.strftime("%H:%M:%S") if delayed_time else None,
+            "| finished =", reminder_finished_today,
+            "| shown_today =", original_reminder_shown_today
         )
 
-        # 判斷是否要觸發原始提醒或補發提醒
-        if not original_reminder_shown_today and now >= reminder_datetime:
-            print(">>> 今天的提醒時間到了，準備提醒")
-            original_reminder_shown_today = True
-            show_reminder()
+        if not reminder_finished_today:
+            if delayed_time is not None:
+                if now >= delayed_time:
+                    print(">>> 延後時間到了，準備提醒")
+                    delayed_time = None
+                    root.after(0, show_reminder)  # ← 通知主執行緒開視窗
+            else:
+                weekday = now.weekday()
+                reminder_time = weekly_schedule[weekday]
 
-    time.sleep(5)
+                if not schedule_printed_today:
+                    print("今天的提醒時間 =", reminder_time)
+                    schedule_printed_today = True
+
+                reminder_datetime = datetime.combine(
+                    now.date(),
+                    datetime.strptime(reminder_time, "%H:%M").time()
+                )
+
+                if not original_reminder_shown_today and now >= reminder_datetime:
+                    print(">>> 今天的提醒時間到了，準備提醒")
+                    original_reminder_shown_today = True
+                    root.after(0, show_reminder)  # ← 通知主執行緒開視窗
+
+        time.sleep(5)
+
+
+print("程式已啟動")
+print("每週提醒時間表 =", weekly_schedule)
+
+# 計時迴圈放背景執行緒
+threading.Thread(target=timer_loop, daemon=True).start()
+
+# 控制面板和 mainloop 在主執行緒
+open_control_panel()
+root.mainloop()
