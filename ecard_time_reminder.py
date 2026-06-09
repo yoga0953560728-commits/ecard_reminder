@@ -18,7 +18,7 @@ first_run_file = "first_run.json"
 def show_intro():
     intro = tk.Toplevel(root)
     intro.title("歡迎使用電卡提醒系統")
-    intro.geometry("400x280")
+    intro.geometry("400x350")
     intro.lift()
     intro.focus_force()
     intro.attributes('-topmost', True)
