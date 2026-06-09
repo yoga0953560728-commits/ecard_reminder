@@ -10,7 +10,40 @@ from email.header import Header
 root = tk.Tk()
 root.withdraw()
 
+#建立說明
+def show_intro():
+    intro = tk.Toplevel(root)
+    intro.title("歡迎使用電卡提醒系統")
+    intro.geometry("400x280")
+    intro.lift()
+    intro.focus_force()
+    intro.attributes('-topmost', True)
+
+    tk.Label(intro, text="電卡提醒系統", font=("Arial", 16, "bold")).pack(pady=15)
+
+    desc = (
+        "這個程式會在每天指定的時間提醒你換電卡。\n\n"
+        "第一次開啟時會進行兩步驟設定：\n\n"
+        "① 設定每週的提醒時間\n"
+        "   → 可以每天設定不同時間\n\n"
+        "② Gmail 通知設定（可略過）\n"
+        "   → 時間到時同時寄信提醒你\n"
+        "   → 不設定仍可正常使用視窗提醒"
+    )
+
+    tk.Label(intro, text=desc, font=("Arial", 13), justify="left").pack(padx=20)
+    tk.Button(intro, text="開始設定", command=intro.destroy).pack(pady=15)
+
+    root.wait_window(intro)
+
+#開啟啟用說明
+show_intro() 
+
 def send_email_notification():
+    sender_email = email_config.get("sender_email", "")
+    if not sender_email:
+        print(">>> 未設定 Gmail，略過寄信")
+        return
     sender_email = email_config["sender_email"]
     receiver_email = email_config["sender_email"]  # 寄給自己
     app_password = email_config["app_password"]
@@ -138,6 +171,7 @@ def create_schedule_with_gui():
 
     return weekly_schedule
 
+
 try:
     # 嘗試從檔案讀取每週提醒時間
     with open(schedule_file, "r", encoding="utf-8") as file:
@@ -190,43 +224,54 @@ def create_email_config_with_gui():
     config = {}
 
     config_window = tk.Toplevel(root)
-    config_window.title("設定 Gmail 收信帳號")
-    config_window.geometry("400x250")
+    config_window.title("Gmail 通知設定（可略過）")
+    config_window.geometry("420x220")
     config_window.lift()
     config_window.focus_force()
     config_window.attributes('-topmost', True)
 
-    tk.Label(config_window, text="請設定收信用的 Gmail 帳號", font=("Arial", 13)).pack(pady=10)
+    tk.Label(config_window, text="Gmail 通知設定", font=("Arial", 13, "bold")).pack(pady=10)
 
-    # Gmail 帳號
+    desc = (
+        "設定後，提醒時間到時會同時寄一封信到你的 Gmail。\n"
+        "Google應用程式密碼，需至 Google帳戶申請，非一般密碼。\n"
+        "不想設定可以直接按「略過」，之後仍可正常使用。"
+    )
+    tk.Label(config_window, text=desc, font=("Arial", 10), justify="left", fg="gray").pack(padx=15)
+
     row1 = tk.Frame(config_window)
     row1.pack(pady=5)
     tk.Label(row1, text="Gmail 帳號", width=12).pack(side="left")
     email_entry = tk.Entry(row1, width=28)
     email_entry.pack(side="left")
 
-    # 應用程式密碼
     row2 = tk.Frame(config_window)
     row2.pack(pady=5)
-    tk.Label(row2, text="你的16位Google\n應用程式密碼", width=12).pack(side="left")
-    password_entry = tk.Entry(row2, width=28, show="*")  # show="*" 讓密碼顯示成星號
+    tk.Label(row2, text="應用程式密碼", width=12).pack(side="left")
+    password_entry = tk.Entry(row2, width=28, show="*")
     password_entry.pack(side="left")
 
     def save_config():
         config["sender_email"] = email_entry.get()
         config["app_password"] = password_entry.get()
-
         with open(email_config_file, "w", encoding="utf-8") as f:
             json.dump(config, f, ensure_ascii=False, indent=4)
-
         config_window.destroy()
         messagebox.showinfo("完成", "Gmail 設定已儲存！")
 
+    def skip_config():
+        config["sender_email"] = ""
+        config["app_password"] = ""
+        with open(email_config_file, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=4)
+        config_window.destroy()
 
-    tk.Button(config_window, text="儲存設定", command=save_config).pack(pady=15)
-    # config_window.mainloop()
+    btn_frame = tk.Frame(config_window)
+    btn_frame.pack(pady=10)
+    tk.Button(btn_frame, text="儲存設定", command=save_config).pack(side="left", padx=10)
+    tk.Button(btn_frame, text="略過", command=skip_config).pack(side="left", padx=10)
+
     root.wait_window(config_window)
-
     return config
 
 try:
